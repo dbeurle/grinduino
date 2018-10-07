@@ -1,16 +1,19 @@
-#include <LiquidCrystal.h>             //includes the LCD library
-#include <EEPROM.h>                    //includes the EEPROM library
+
+#include <LiquidCrystal.h> //includes the LCD library
+#include <EEPROM.h>        //includes the EEPROM library
+
 LiquidCrystal lcd(13, 11, 5, 4, 3, 2); // specifies the appropriate pins for the LCD
 
-/*--------------button pins -----------------------*/
-const int up = 10;    // specifies pin number for up button (LCD cursor)
-const int down = 9;   // specifies pin number for down button (LCD cursor)
-const int select = 8; // specifies pin number for select button (LCD cursor)
-const int purge = 7; // specifies pin number for purge button (when pressed will run the grinder for as long as it is held)
-const int active = 6; // specifies pin number for activate button (when pressed will run the grinder for the specified time)
+// button pins
+constexpr int up = 10;    // specifies pin number for up button (LCD cursor)
+constexpr int down = 9;   // specifies pin number for down button (LCD cursor)
+constexpr int select = 8; // specifies pin number for select button (LCD cursor)
+constexpr int purge = 7; // specifies pin number for purge button (when pressed will run the grinder for as long as it is held)
+constexpr int active = 6; // specifies pin number for activate button (when pressed will run the
+                          // grinder for the specified time)
 
-/*----------Optocoupler pins---------*/
-const int optoOne = 12; // specifies pin number for optocoupler 1
+// Optocoupler pins
+constexpr int optoOne = 12; // specifies pin number for optocoupler 1
 
 int presetOneVal = 0; // initialises value for preset one hold time.
 int presetTwoVal = 0; // initialises value for preset two hold time.
@@ -39,7 +42,7 @@ unsigned long pTwoMillis = 0;
 unsigned long pTwoMillisLength = 0;
 int dig1 = 0;
 int dig2 = 0;
-float countDown = 0;
+float countDown = 0.0f;
 
 int x = 0;
 
