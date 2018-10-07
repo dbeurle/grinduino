@@ -1,6 +1,6 @@
 
-#include <LiquidCrystal.h> //includes the LCD library
-#include <EEPROM.h>        //includes the EEPROM library
+#include <EEPROM.h>
+#include <LiquidCrystal.h>
 
 LiquidCrystal lcd(13, 11, 5, 4, 3, 2); // specifies the appropriate pins for the LCD
 
