@@ -1,4 +1,4 @@
-/*--------------check button positions and write values pertaining to their states ------------------*/
+// check button positions and write values pertaining to their states
 void buttonCheck()
 {
     upVal = digitalRead(up);
@@ -136,7 +136,7 @@ void presetFunctions()
         delay(100);        // delay 0.1 seconds to decrease amount flashed to LCD
         oldlcdState = 0; // make oldlcdstate = 0 so that it will return to display preset 1 info once select button is pressed
         buttonCheck();   // check what buttons have been pressed (to know if select has been pressed
-                       // so it can turn off, or if up or down have been pressed
+                         // so it can turn off, or if up or down have been pressed
         if (upState == 1)
         {                                                   // if up button is pressed then
             presetTwoVal = presetTwoVal + 1;                // add 0.1 seconds to the preset 2 time
