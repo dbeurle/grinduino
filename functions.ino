@@ -127,13 +127,15 @@ void presetFunctions()
         {
             // if up button is pressed then
             // add 0.1 seconds to the preset 1 time and clamp between 0.1 and 25.5
-            presetOneVal = constrain(++presetOneVal, 1, 255);
+            ++presetOneVal;
+            presetOneVal = constrain(presetOneVal, 1, 255);
         }
         else if (downState == 1)
         {
             // if the down button is pressed then minus 0.1 seconds to the preset 1 time
             // limit the value range to be 0.1 to 25.5
-            presetOneVal = constrain(--presetOneVal, 1, 255);
+            --presetOneVal;
+            presetOneVal = constrain(presetOneVal, 1, 255);
         }
         oldSelectState = 1; // make oldSelectState = 1 so we can write the value to memory later.
     }
@@ -163,13 +165,18 @@ void presetFunctions()
     {
         // when preset 1 info is displayed, after select has changed from state 1 to state 0 then
         oldSelectState = 0; // old select state changes to 0 (so it doesn't repeat)
-        spitPresetOne();    // write the preset one value to the eeprom memory
+
+        // write the preset one value to the eeprom memory
+        EEPROM.write(0, presetOneVal); // write the integer into the eeprom
     }
     else if (lcdState == 1 && selectState == 0 && oldSelectState == 1)
     {
         // when preset 2 info is displayed, after select has changed from state 1 to state 0 then
-        oldSelectState = 0; // old select state changes to 0 (so it doesn't repeat)
-        spitPresetTwo();    // write the preset two value to the eeprom memory
+        // old select state changes to 0 (so it doesn't repeat)
+        oldSelectState = 0;
+
+        // write the preset two value to the eeprom memory
+        EEPROM.write(1, presetTwoVal);
     }
 
     // ACTIVE BUTTON FUNCTIONS
@@ -283,18 +290,6 @@ void sniffPresets()
 {
     presetOneVal = EEPROM.read(0); // read the preset one integer value from EEPROM
     presetTwoVal = EEPROM.read(1); // read the preset two integer value from EEPROM
-}
-
-// Functions to write the preset values to the EEPROM (needs to be done ONCE after each
-// change is made to the value)
-void spitPresetOne()
-{
-    EEPROM.write(0, presetOneVal); // write the integer into the eeprom
-}
-
-void spitPresetTwo()
-{
-    EEPROM.write(1, presetTwoVal); // write the integer into the eeprom
 }
 
 void welcome()
