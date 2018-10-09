@@ -10,14 +10,15 @@ void buttonCheck()
 
     if (upVal == LOW && downVal == HIGH && selectVal == HIGH)
     {
-        // when the upbutton is pressed
-        upState = 1;   // the upState is 1 while downState is 0
-        downState = 0; //
+        // when the upbutton is pressed the upState is 1 while downState is 0
+        upState = 1;
+        downState = 0;
     }
     else if (upVal == HIGH && downVal == LOW && selectVal == HIGH)
-    {                  // when the down button is pressed
-        upState = 0;   //
-        downState = 1; // the downState is 1 while the upState is 0
+    {
+        // when the down button is pressed the downState is 1 and the upState is 0
+        upState = 0;
+        downState = 1;
     }
     else if (upVal == HIGH && downVal == HIGH && selectVal == LOW)
     {
@@ -26,12 +27,12 @@ void buttonCheck()
         // the selectState changes state from 0 to 1 or 1 to 0.
         selectState = !selectState;
     }
-    else if ((activeVal == LOW) && (purgeVal == HIGH))
+    else if (activeVal == LOW && purgeVal == HIGH)
     {
         activeState = 1;
         purgeState = 0;
     }
-    else if ((activeVal == HIGH) && (purgeVal == LOW))
+    else if (activeVal == HIGH && purgeVal == LOW)
     {
         activeState = 0;
         purgeState = 1;
@@ -150,16 +151,19 @@ void presetFunctions()
         buttonCheck();   // check what buttons have been pressed (to know if select has been pressed
                          // so it can turn off, or if up or down have been pressed
         if (upState == 1)
-        {                                                   // if up button is pressed then
-            presetTwoVal = presetTwoVal + 1;                // add 0.1 seconds to the preset 2 time
+        {
+            // if up button is pressed then
+            ++presetTwoVal;                                 // add 0.1 seconds to the preset 2 time
             presetTwoVal = constrain(presetTwoVal, 1, 255); // limit the value range to be 0.1 to 25.5
         }
         else if (downState == 1)
-        {                                    // if the down button is pressed then
-            presetTwoVal = presetTwoVal - 1; // minus 0.1 seconds to the preset 2 time
+        {
+            // if the down button is pressed then
+            --presetTwoVal; // minus 0.1 seconds to the preset 2 time
             presetTwoVal = constrain(presetTwoVal, 1, 255); // limit the value range to be 0.1 to 25.5
         }
-        oldSelectState = 1; // make oldSelectState = 1 so we can write the value to memory later.
+        // make oldSelectState = 1 so we can write the value to memory later.
+        oldSelectState = 1;
     }
     if (lcdState == 0 && selectState == 0 && oldSelectState == 1)
     {
@@ -195,22 +199,25 @@ void presetFunctions()
                 lcd.print("REMAINING = ");    // write "remaining ="
             }
         }
-        previousMillis = currentMillis; // save the the millis() as previousMillis as the button has been pressed
-        pOneMillis = presetOneVal * 100; // convert presetOneVal from its EEPROM friendly form
-                                         // into a milliSecond friendly value
+        // save the the millis() as previousMillis as the button has been pressed
+        auto const previousMillis = currentMillis;
+
+        // convert from a EEPROM friendly form into a milliSecond value
+        auto const pOneMillis = presetOneVal * 100;
 
         // create the milliSecond value that this while loop should stop at
-        pOneMillisLength = previousMillis + pOneMillis;
+        auto const pOneMillisLength = previousMillis + pOneMillis;
 
-        countDown = pOneMillisLength - millis(); // countDown is the difference between the actual
-                                                 // millis() value and pOneMillisLength
+        // difference between the actual millis() value and pOneMillisLength
+        float const countDown = pOneMillisLength - millis();
 
-        dig1 = countDown / 1000;                    // dig1 is the first digit of countdown
-        dig2 = ((countDown - (dig1 * 1000)) / 100); // dig2 is the second digit of countdown
-        lcd.setCursor(12, 1);                       // move the lcd Cursor to 12,1
-        lcd.print(dig1);                            // print the value of dig1
-        lcd.print(".");                             // print a decimal point
-        lcd.print(dig2);                            // print the value of dig2
+        auto const dig1 = countDown / 1000;                // dig1 is the first digit of countdown
+        auto const dig2 = (countDown - dig1 * 1000) / 100; // dig2 is the second digit of countdown
+
+        lcd.setCursor(12, 1);
+        lcd.print(dig1);
+        lcd.print(".");
+        lcd.print(dig2);
 
         if (millis() < pOneMillisLength)
         {
@@ -242,22 +249,25 @@ void presetFunctions()
                 lcd.print("REMAINING = ");    // write "remaining ="
             }
         }
-        previousMillis = currentMillis; // save the the millis() as previousMillis as the button has been pressed
-        pTwoMillis = (presetTwoVal * 100); // convert presetTwoVal from its EEPROM friendly form
-                                           // into a milliSecond friendly value
+        auto const previousMillis = currentMillis; // save the the millis() as previousMillis as the button has been pressed
+
+        auto const pTwoMillis = presetTwoVal * 100; // convert presetTwoVal from its EEPROM friendly
+                                                    // form into a milliSecond friendly value
 
         // create the milliSecond value that this while loop should stop at
-        pTwoMillisLength = (previousMillis + pTwoMillis);
+        auto const pTwoMillisLength = previousMillis + pTwoMillis;
 
-        countDown = pTwoMillisLength - millis(); // countDown is the difference between the actual
-                                                 // millis() value and pTwoMillisLength
+        float const countDown = pTwoMillisLength
+                                - millis(); // countDown is the difference between the actual
+                                            // millis() value and pTwoMillisLength
 
-        dig1 = countDown / 1000;                    // dig1 is the first digit of countdown
-        dig2 = ((countDown - (dig1 * 1000)) / 100); // dig2 is the second digit of countdown
-        lcd.setCursor(12, 1);                       // move the lcd Cursor to 12,1
-        lcd.print(dig1);                            // print the value of dig1
-        lcd.print(".");                             // print a decimal point
-        lcd.print(dig2);                            // print the value of dig2
+        auto const dig1 = countDown / 1000;                // dig1 is the first digit of countdown
+        auto const dig2 = (countDown - dig1 * 1000) / 100; // dig2 is the second digit of countdown
+
+        lcd.setCursor(12, 1); // move the lcd Cursor to 12,1
+        lcd.print(dig1);      // print the value of dig1
+        lcd.print(".");       // print a decimal point
+        lcd.print(dig2);      // print the value of dig2
 
         if (millis() < pTwoMillisLength)
         {
@@ -267,10 +277,10 @@ void presetFunctions()
         else
         {
             // when millis is greater that the millisecond value that this while loop should stop at
-            digitalWrite(optoOne, LOW); //
-            presetTwoLCD();             // return to the preset one display
-            activeState = 0;            // make the activeState = 0 so the while loop stops
-            x = 0; // return x to 0 so that the above "for" loop can be repeated
+            digitalWrite(optoOne, LOW);
+            presetTwoLCD();  // return to the preset one display
+            activeState = 0; // make the activeState = 0 so the while loop stops
+            x = 0;           // return x to 0 so that the above "for" loop can be repeated
         }
     }
 
@@ -283,13 +293,6 @@ void presetFunctions()
             digitalWrite(optoOne, LOW);
         }
     }
-}
-
-// Function to read preset values from EEPROM (needs only be done once during startup)
-void sniffPresets()
-{
-    presetOneVal = EEPROM.read(0); // read the preset one integer value from EEPROM
-    presetTwoVal = EEPROM.read(1); // read the preset two integer value from EEPROM
 }
 
 void welcome()

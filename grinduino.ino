@@ -18,31 +18,23 @@ constexpr int optoOne = 12; // specifies pin number for optocoupler 1
 int presetOneVal = 0; // initialises value for preset one hold time.
 int presetTwoVal = 0; // initialises value for preset two hold time.
 
-int upVal = 0;          //
-int downVal = 0;        //
-int selectVal = 0;      //
-int activeVal = 0;      //
-int purgeVal = 0;       //
-int upState = 0;        //
-int downState = 0;      //
-int selectState = 0;    //
-int oldSelectState = 0; //
-int activeState = 0;    //
-int oldActiveState = 0; //
-int purgeState = 0;     //
-int lcdState = 0;       //
-int oldlcdState = 0;    // More initialisation
+int upVal = 0;
+int downVal = 0;
+int selectVal = 0;
+int activeVal = 0;
+int purgeVal = 0;
+int upState = 0;
+int downState = 0;
+int selectState = 0;
+int oldSelectState = 0;
+int activeState = 0;
+int oldActiveState = 0;
+int purgeState = 0;
+int lcdState = 0;
+int oldlcdState = 0;
 
-/*-------- for countdown on the LCD-------------*/
+// for countdown on the LCD
 unsigned long currentMillis = 0;
-unsigned long previousMillis = 0;
-unsigned long pOneMillis = 0;
-unsigned long pOneMillisLength = 0;
-unsigned long pTwoMillis = 0;
-unsigned long pTwoMillisLength = 0;
-int dig1 = 0;
-int dig2 = 0;
-float countDown = 0.0f;
 
 int x = 0;
 
@@ -58,9 +50,14 @@ void setup()
     pinMode(active, INPUT_PULLUP); // specifies the active pin as an input pullup
     pinMode(purge, INPUT_PULLUP);  // specifies the purge pin as an input pullup
 
-    lcd.clear();    // clear the LCD
-    sniffPresets(); // read the preset values saved in the eeprom
-    presetOneLCD(); // display the preset 1 settings
+    lcd.clear();
+
+    // read the preset values saved in the eeprom
+    presetOneVal = EEPROM.read(0);
+    presetTwoVal = EEPROM.read(1);
+
+    // display the preset 1 settings
+    presetOneLCD();
 }
 
 void loop()
