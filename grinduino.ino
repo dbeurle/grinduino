@@ -2,67 +2,334 @@
 #include <EEPROM.h>
 #include <LiquidCrystal.h>
 
-LiquidCrystal lcd(13, 11, 5, 4, 3, 2); // specifies the appropriate pins for the LCD
+namespace lcd1602
+{
+class display_keypad
+{
+public:
+    enum class button : int8_t { right, up, down, left, select, none, unknown };
 
-// button pins
-constexpr int up = 10;    // specifies pin number for up button (LCD cursor)
-constexpr int down = 9;   // specifies pin number for down button (LCD cursor)
-constexpr int select = 8; // specifies pin number for select button (LCD cursor)
-constexpr int purge = 7; // specifies pin number for purge button (when pressed will run the grinder for as long as it is held)
-constexpr int active = 6; // specifies pin number for activate button (when pressed will run the
-                          // grinder for the specified time)
+public:
+    display_keypad() : m_lcd(8, 9, 4, 5, 6, 7) { m_lcd.begin(16, 2); }
 
-// Optocoupler pins
-constexpr int optoOne = 12; // specifies pin number for optocoupler 1
+    auto display() noexcept -> LiquidCrystal& { return m_lcd; }
 
-int presetOneVal = 0; // initialises value for preset one hold time.
-int presetTwoVal = 0; // initialises value for preset two hold time.
+    /// Update the button state continuously using a debouncing algorithm
+    void update_button_state()
+    {
+        m_last = convert_to_code(analogRead(A0));
 
-int upVal = 0;
-int downVal = 0;
-int selectVal = 0;
-int activeVal = 0;
-int purgeVal = 0;
-int upState = 0;
-int downState = 0;
-int selectState = 0;
-int oldSelectState = 0;
-int activeState = 0;
-int oldActiveState = 0;
-int purgeState = 0;
-int lcdState = 0;
-int oldlcdState = 0;
+        // No change in the switch state
+        if (m_current != m_last)
+        {
+            // Check if the state has changed in the last 50 ms
+            if (millis() - m_last_debounce > 50)
+            {
+                m_current = m_last;
+                m_last_debounce = millis();
+                m_has_state_changed = true;
+            }
+        }
+        else
+        {
+            m_has_state_changed = false;
+        }
+    }
 
-// for countdown on the LCD
-unsigned long currentMillis = 0;
+    bool is_select_pressed() const noexcept { return m_current == button::select; }
+    bool is_left_pressed() const noexcept { return m_current == button::left; }
+    bool is_right_pressed() const noexcept { return m_current == button::right; }
+    bool is_up_pressed() const noexcept { return m_current == button::up; }
+    bool is_down_pressed() const noexcept { return m_current == button::down; }
+    bool is_none_pressed() const noexcept { return m_current == button::none; }
 
-int x = 0;
+    bool has_state_changed() const noexcept { return m_has_state_changed; }
+
+private:
+    auto convert_to_code(int const analog_key_input) const noexcept -> button
+    {
+        // Most likely value is nothing pressed
+        if (analog_key_input > 1000)
+        {
+            return button::none;
+        }
+        else if (analog_key_input <= 50)
+        {
+            return button::right;
+        }
+        else if (analog_key_input > 50 && analog_key_input < 150)
+        {
+            return button::up;
+        }
+        else if (analog_key_input >= 150 && analog_key_input < 350)
+        {
+            return button::down;
+        }
+        else if (analog_key_input > 350 && analog_key_input < 500)
+        {
+            return button::left;
+        }
+        return button::select;
+    }
+
+private:
+    LiquidCrystal m_lcd;
+
+    /// Current known state of the switch
+    button m_current = button::none;
+    button m_last = button::none;
+
+    bool m_has_state_changed = false;
+
+    unsigned long m_last_debounce = 0;
+};
+}
+namespace grinduino
+{
+class timer_preset
+{
+public:
+    timer_preset(char const* name, int const eeprom_index, unsigned long const time_ms = 1000)
+        : m_name(name), m_time(time_ms), m_eeprom_index(eeprom_index)
+    {
+    }
+
+    void set(unsigned int const time_value) noexcept { m_time = time_value; }
+
+    auto value() const noexcept -> unsigned int { return m_time; }
+
+    void increment() { m_time += 100; }
+    void decrement() { m_time = (m_time >= 100) ? m_time - 100 : 0; }
+
+    /// Load a value from the EEPROM of the device \sa save()
+    void load() noexcept { m_time = EEPROM.read(m_eeprom_index); }
+    /// Load a value from the EEPROM of the device \sa write()
+    void save() noexcept { EEPROM.write(m_eeprom_index, m_time); }
+
+    /// Write a value into the EEPROM of the device
+    void write(lcd1602::display_keypad& interface) const noexcept
+    {
+        interface.display().clear();
+        interface.display().setCursor(0, 0);
+        interface.display().print(m_name);
+        this->print_duration(interface, m_time);
+    }
+
+    void start() noexcept
+    {
+        if (m_started_at == 0)
+        {
+            m_started_at = millis();
+        }
+    }
+
+    void reset() noexcept { m_started_at = 0; }
+
+    bool is_finished() const { return millis() - m_started_at > m_time; }
+
+    void countdown(lcd1602::display_keypad& interface)
+    {
+        this->print_duration(interface, m_time - (millis() - m_started_at));
+    }
+
+private:
+    void print_duration(lcd1602::display_keypad& interface, unsigned long const time_ms) const
+    {
+        interface.display().setCursor(0, 1);
+        interface.display().print("duration = ");
+        interface.display().print(time_ms / 1000.0f);
+        interface.display().print("s");
+    }
+
+private:
+    char const* m_name;
+    unsigned long m_time = 0;
+    unsigned long m_started_at = 0;
+    int m_eeprom_index;
+};
+
+enum class menu : int { home, purge, single_dose, double_dose, settings, count };
+
+inline void welcome() noexcept
+{
+    interface.display().clear();
+    interface.display().setCursor(4, 0);
+    interface.display().print("grinduino");
+    interface.display().setCursor(2, 1);
+    interface.display().print("version 0.1");
+    delay(1000);
+}
+}
+
+lcd1602::display_keypad interface;
+
+grinduino::timer_preset purge_preset("purge", 2000, 0);
+grinduino::timer_preset single_preset("single dose", 2000, 1);
+grinduino::timer_preset double_preset("double dose", 2000, 2);
+
+grinduino::menu item = grinduino::menu::purge;
 
 void setup()
 {
-    pinMode(optoOne, OUTPUT); // specifies the optocoupler 1 pin as an output
-    digitalWrite(optoOne, LOW);
+    interface.display().begin(16, 2);
 
-    lcd.begin(16, 2);              // specifies the dimensions of the LCD to be used.
-    pinMode(up, INPUT_PULLUP);     // specifies the up pin as an input pullup
-    pinMode(down, INPUT_PULLUP);   // specifies the down pin as an input pullup
-    pinMode(select, INPUT_PULLUP); // specifies the select pin as an input pullup
-    pinMode(active, INPUT_PULLUP); // specifies the active pin as an input pullup
-    pinMode(purge, INPUT_PULLUP);  // specifies the purge pin as an input pullup
+    welcome();
 
-    lcd.clear();
+    purge_preset.load();
+    single_preset.load();
+    double_preset.load();
 
-    // read the preset values saved in the eeprom
-    presetOneVal = EEPROM.read(0);
-    presetTwoVal = EEPROM.read(1);
-
-    // display the preset 1 settings
-    presetOneLCD();
+    purge_preset.write(interface);
 }
 
 void loop()
 {
-    buttonCheck();            // check the state of the buttons
-    currentMillis = millis(); // current millis becomes millis (for countdown purposes)
-    presetFunctions();        // run the main code (functions for presets and grinder motor on)
+    interface.update_button_state();
+
+    if (interface.is_none_pressed())
+    {
+        return;
+    }
+
+    if (interface.is_down_pressed())
+    {
+        if (item == grinduino::menu::purge)
+        {
+            item = grinduino::menu::single_dose;
+            single_preset.write(interface);
+        }
+        else if (item == grinduino::menu::single_dose)
+        {
+            item = grinduino::menu::double_dose;
+            double_preset.write(interface);
+        }
+        else if (item == grinduino::menu::double_dose)
+        {
+            item = grinduino::menu::settings;
+
+            interface.display().clear();
+            interface.display().setCursor(0, 0);
+            interface.display().print("settings");
+        }
+    }
+    else if (interface.is_up_pressed())
+    {
+        if (item == grinduino::menu::single_dose)
+        {
+            item = grinduino::menu::purge;
+            purge_preset.write(interface);
+        }
+        else if (item == grinduino::menu::double_dose)
+        {
+            item = grinduino::menu::single_dose;
+            single_preset.write(interface);
+        }
+        else if (item == grinduino::menu::settings)
+        {
+            item = grinduino::menu::double_dose;
+            double_preset.write(interface);
+        }
+    }
+    else if (interface.is_left_pressed())
+    {
+        if (item == grinduino::menu::purge)
+        {
+            purge_preset.decrement();
+            purge_preset.save();
+            purge_preset.write(interface);
+        }
+        else if (item == grinduino::menu::single_dose)
+        {
+            single_preset.decrement();
+            single_preset.save();
+            single_preset.write(interface);
+        }
+        else if (item == grinduino::menu::double_dose)
+        {
+            double_preset.decrement();
+            double_preset.save();
+            double_preset.write(interface);
+        }
+    }
+    else if (interface.is_right_pressed())
+    {
+        if (item == grinduino::menu::purge)
+        {
+            purge_preset.increment();
+            purge_preset.save();
+            purge_preset.write(interface);
+        }
+        else if (item == grinduino::menu::single_dose)
+        {
+            single_preset.increment();
+            single_preset.save();
+            single_preset.write(interface);
+        }
+        else if (item == grinduino::menu::double_dose)
+        {
+            double_preset.increment();
+            double_preset.save();
+            double_preset.write(interface);
+        }
+    }
+    else if (interface.is_select_pressed())
+    {
+        delay(300);
+
+        if (item == grinduino::menu::purge)
+        {
+            purge_preset.start();
+
+            while (!purge_preset.is_finished())
+            {
+                interface.update_button_state();
+
+                // Break out of the countdown if user aborted
+                if (interface.is_select_pressed())
+                {
+                    break;
+                }
+                purge_preset.countdown(interface);
+            }
+            purge_preset.reset();
+            purge_preset.write(interface);
+        }
+        else if (item == grinduino::menu::single_dose)
+        {
+            single_preset.start();
+
+            while (!single_preset.is_finished())
+            {
+                interface.update_button_state();
+
+                // Break out of the countdown if user aborted
+                if (interface.is_select_pressed())
+                {
+                    break;
+                }
+                single_preset.countdown(interface);
+            }
+            single_preset.reset();
+            single_preset.write(interface);
+        }
+        else if (item == grinduino::menu::double_dose)
+        {
+            double_preset.start();
+
+            while (!double_preset.is_finished())
+            {
+                interface.update_button_state();
+
+                // Break out of the countdown if user aborted
+                if (interface.is_select_pressed())
+                {
+                    break;
+                }
+                double_preset.countdown(interface);
+            }
+            double_preset.reset();
+            double_preset.write(interface);
+        }
+    }
+    delay(200);
 }
