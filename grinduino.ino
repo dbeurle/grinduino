@@ -98,13 +98,15 @@ public:
 
     auto value() const noexcept -> unsigned int { return m_time; }
 
+    /// Increment the timer by 100 ms
     void increment() { m_time += 100; }
+    /// Decrement the timer by 100 ms
     void decrement() { m_time = (m_time >= 100) ? m_time - 100 : 0; }
 
     /// Load a value from the EEPROM of the device \sa save()
-    void load() noexcept { m_time = EEPROM.read(m_eeprom_index); }
+    void load() noexcept { m_time = EEPROM.read(m_eeprom_index) * 100; }
     /// Load a value from the EEPROM of the device \sa write()
-    void save() noexcept { EEPROM.write(m_eeprom_index, m_time); }
+    void save() noexcept { EEPROM.write(m_eeprom_index, m_time / 100); }
 
     /// Write a value into the EEPROM of the device
     void write(lcd1602::display_keypad& interface) const noexcept
@@ -112,16 +114,20 @@ public:
         interface.display().clear();
         interface.display().setCursor(0, 0);
         interface.display().print(m_name);
+
+        interface.display().setCursor(0, 1);
+        interface.display().print("duration = ");
+
         this->print_duration(interface, m_time);
     }
 
-    void start() noexcept
+    /// Write a value into the EEPROM of the device
+    void write_time(lcd1602::display_keypad& interface) const noexcept
     {
-        if (m_started_at == 0)
-        {
-            m_started_at = millis();
-        }
+        this->print_duration(interface, m_time);
     }
+
+    void start() noexcept { m_started_at = millis(); }
 
     void reset() noexcept { m_started_at = 0; }
 
@@ -135,9 +141,14 @@ public:
 private:
     void print_duration(lcd1602::display_keypad& interface, unsigned long const time_ms) const
     {
-        interface.display().setCursor(0, 1);
-        interface.display().print("duration = ");
-        interface.display().print(time_ms / 1000.0f);
+        if (time_ms < 10000)
+        {
+            interface.display().setCursor(15, 1);
+            interface.display().print(" ");
+        }
+
+        interface.display().setCursor(11, 1);
+        interface.display().print(time_ms / 1000.0f, 1);
         interface.display().print("s");
     }
 
@@ -149,8 +160,17 @@ private:
 };
 
 enum class menu : int { home, purge, single_dose, double_dose, settings, count };
+}
 
-inline void welcome() noexcept
+lcd1602::display_keypad interface;
+
+grinduino::timer_preset purge_preset("purge", 0);
+grinduino::timer_preset single_preset("single dose", 1);
+grinduino::timer_preset double_preset("double dose", 2);
+
+grinduino::menu item = grinduino::menu::purge;
+
+void welcome() noexcept
 {
     interface.display().clear();
     interface.display().setCursor(4, 0);
@@ -159,15 +179,6 @@ inline void welcome() noexcept
     interface.display().print("version 0.1");
     delay(1000);
 }
-}
-
-lcd1602::display_keypad interface;
-
-grinduino::timer_preset purge_preset("purge", 2000, 0);
-grinduino::timer_preset single_preset("single dose", 2000, 1);
-grinduino::timer_preset double_preset("double dose", 2000, 2);
-
-grinduino::menu item = grinduino::menu::purge;
 
 void setup()
 {
@@ -235,20 +246,17 @@ void loop()
         if (item == grinduino::menu::purge)
         {
             purge_preset.decrement();
-            purge_preset.save();
-            purge_preset.write(interface);
+            purge_preset.write_time(interface);
         }
         else if (item == grinduino::menu::single_dose)
         {
             single_preset.decrement();
-            single_preset.save();
-            single_preset.write(interface);
+            single_preset.write_time(interface);
         }
         else if (item == grinduino::menu::double_dose)
         {
             double_preset.decrement();
-            double_preset.save();
-            double_preset.write(interface);
+            double_preset.write_time(interface);
         }
     }
     else if (interface.is_right_pressed())
@@ -256,20 +264,17 @@ void loop()
         if (item == grinduino::menu::purge)
         {
             purge_preset.increment();
-            purge_preset.save();
-            purge_preset.write(interface);
+            purge_preset.write_time(interface);
         }
         else if (item == grinduino::menu::single_dose)
         {
             single_preset.increment();
-            single_preset.save();
-            single_preset.write(interface);
+            single_preset.write_time(interface);
         }
         else if (item == grinduino::menu::double_dose)
         {
             double_preset.increment();
-            double_preset.save();
-            double_preset.write(interface);
+            double_preset.write_time(interface);
         }
     }
     else if (interface.is_select_pressed())
@@ -278,6 +283,7 @@ void loop()
 
         if (item == grinduino::menu::purge)
         {
+            purge_preset.save();
             purge_preset.start();
 
             while (!purge_preset.is_finished())
@@ -296,6 +302,7 @@ void loop()
         }
         else if (item == grinduino::menu::single_dose)
         {
+            single_preset.save();
             single_preset.start();
 
             while (!single_preset.is_finished())
@@ -314,6 +321,8 @@ void loop()
         }
         else if (item == grinduino::menu::double_dose)
         {
+            double_preset.save();
+
             double_preset.start();
 
             while (!double_preset.is_finished())
