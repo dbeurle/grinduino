@@ -94,8 +94,6 @@ public:
     {
     }
 
-    void set(unsigned int const time_value) noexcept { m_time = time_value; }
-
     auto value() const noexcept -> unsigned int { return m_time; }
 
     /// Increment the timer by 100 ms
@@ -458,15 +456,26 @@ void loop()
         else if (item == grinduino::menu::double_dose)
         {
             item = grinduino::menu::settings;
-
             interface.display().clear();
             interface.display().setCursor(0, 0);
             interface.display().print("settings");
         }
+        else if (item == grinduino::menu::settings)
+        {
+            item = grinduino::menu::purge;
+            purge_preset.write(interface);
+        }
     }
     else if (interface.is_up_pressed())
     {
-        if (item == grinduino::menu::single_dose)
+        if (item == grinduino::menu::purge)
+        {
+            item = grinduino::menu::settings;
+            interface.display().clear();
+            interface.display().setCursor(0, 0);
+            interface.display().print("settings");
+        }
+        else if (item == grinduino::menu::single_dose)
         {
             item = grinduino::menu::purge;
             purge_preset.write(interface);
