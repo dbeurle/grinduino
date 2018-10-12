@@ -170,7 +170,8 @@ grinduino::timer_preset double_preset("double dose", 2);
 
 grinduino::menu item = grinduino::menu::purge;
 
-void welcome() noexcept
+/// Print a cute welcome message
+inline void welcome() noexcept
 {
     interface.display().clear();
     interface.display().setCursor(4, 0);
@@ -178,6 +179,34 @@ void welcome() noexcept
     interface.display().setCursor(2, 1);
     interface.display().print("version 0.1");
     delay(1000);
+}
+
+/// Perform the timer loop withou blocking the button update.  This enables the
+/// select button presses to be recognised
+inline void perform_timer_loop(grinduino::timer_preset& timer,
+                               grinduino::display_keypad& interface,
+                               grinduino::motor& motor)
+{
+    timer.save();
+    timer.start();
+
+    motor.on();
+
+    while (!timer.is_finished())
+    {
+        interface.update_button_state();
+
+        // Break out of the countdown if user aborted
+        if (interface.is_select_pressed())
+        {
+            break;
+        }
+        timer.countdown(interface);
+    }
+    motor.off();
+    timer.reset();
+
+    timer.write(interface);
 }
 
 void setup()
@@ -283,61 +312,15 @@ void loop()
 
         if (item == grinduino::menu::purge)
         {
-            purge_preset.save();
-            purge_preset.start();
-
-            while (!purge_preset.is_finished())
-            {
-                interface.update_button_state();
-
-                // Break out of the countdown if user aborted
-                if (interface.is_select_pressed())
-                {
-                    break;
-                }
-                purge_preset.countdown(interface);
-            }
-            purge_preset.reset();
-            purge_preset.write(interface);
+            perform_timer_loop(purge_preset, interface, motor);
         }
         else if (item == grinduino::menu::single_dose)
         {
-            single_preset.save();
-            single_preset.start();
-
-            while (!single_preset.is_finished())
-            {
-                interface.update_button_state();
-
-                // Break out of the countdown if user aborted
-                if (interface.is_select_pressed())
-                {
-                    break;
-                }
-                single_preset.countdown(interface);
-            }
-            single_preset.reset();
-            single_preset.write(interface);
+            perform_timer_loop(single_preset, interface, motor);
         }
         else if (item == grinduino::menu::double_dose)
         {
-            double_preset.save();
-
-            double_preset.start();
-
-            while (!double_preset.is_finished())
-            {
-                interface.update_button_state();
-
-                // Break out of the countdown if user aborted
-                if (interface.is_select_pressed())
-                {
-                    break;
-                }
-                double_preset.countdown(interface);
-            }
-            double_preset.reset();
-            double_preset.write(interface);
+            perform_timer_loop(double_preset, interface, motor);
         }
     }
     delay(200);
