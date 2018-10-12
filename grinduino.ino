@@ -108,7 +108,8 @@ public:
     /// Load a value from the EEPROM of the device \sa write()
     void save() noexcept { EEPROM.write(m_eeprom_index, m_time / 100); }
 
-    /// Write a value into the EEPROM of the device
+    /// Write a value to the display
+    /// \param interface Writable interface
     void write(lcd1602::display_keypad& interface) const noexcept
     {
         interface.display().clear();
@@ -160,6 +161,7 @@ private:
 };
 
 enum class menu : int { home, purge, single_dose, double_dose, settings, count };
+
 /// motor is responsible for interfacing the with SSR that control the motor
 /// energisation state (on / off)
 class motor
@@ -189,6 +191,59 @@ private:
     bool m_state = false;
     int m_pin;
 };
+
+class dose_weight
+{
+public:
+    dose_weight(int const eeprom_byte_offset, String&& name)
+        : m_eeprom_byte_offset(eeprom_byte_offset), m_name(name)
+    {
+        this->load();
+    }
+
+    auto value() const noexcept -> int8_t { return m_value; }
+
+    /// Increment the timer by 100 ms
+    void increment() noexcept { m_value++; }
+    /// Decrement the timer by 100 ms
+    void decrement() noexcept
+    {
+        m_value--;
+        m_value = constrain(m_value, 0, 255);
+    }
+    /// Load a value from the EEPROM of the device \sa save()
+    void load() noexcept { m_value = EEPROM.read(m_eeprom_byte_offset); }
+    /// Load a value from the EEPROM of the device \sa write()
+    void save() noexcept { EEPROM.write(m_eeprom_byte_offset, m_value); }
+
+    /// Write a value to the display
+    /// \param interface Writable interface
+    void write(lcd1602::display_keypad& interface) const noexcept
+    {
+        interface.display().clear();
+        interface.display().setCursor(0, 0);
+        interface.display().print("dose weight");
+
+        interface.display().setCursor(0, 1);
+        interface.display().print(m_name);
+        interface.display().print(" = ");
+
+        this->print_weight(interface);
+    }
+
+private:
+    void print_weight(lcd1602::display_keypad& interface)
+    {
+        interface.display().setCursor(m_name.length() + 3, 1);
+        interface.display().print(m_value);
+        interface.display().print("g");
+    }
+
+private:
+    int8_t m_eeprom_byte_offset;
+    int8_t m_value;
+    String m_name;
+};
 }
 
 lcd1602::display_keypad interface;
@@ -196,6 +251,10 @@ lcd1602::display_keypad interface;
 grinduino::timer_preset purge_preset("purge", 0);
 grinduino::timer_preset single_preset("single dose", 1);
 grinduino::timer_preset double_preset("double dose", 2);
+
+grinduino::dose_weight purge_weight(3, "purge");
+grinduino::dose_weight single_weight(4, "single");
+grinduino::dose_weight double_weight(5, "double");
 
 grinduino::motor motor(13);
 
@@ -238,6 +297,128 @@ inline void perform_timer_loop(grinduino::timer_preset& timer,
     timer.reset();
 
     timer.write(interface);
+}
+
+inline void display_settings_menu(lcd1602::display_keypad& interface)
+{
+    interface.display().setCursor(0, 0);
+    interface.display().print("dose weight");
+
+    enum class sub_menu_state : int {
+        purge_weight,
+        single_weight,
+        double_weight,
+        ground,
+        back,
+        count
+    };
+
+    auto sub_menu = sub_menu_state::purge_weight;
+    purge_weight.write(interface);
+
+    while (true)
+    {
+        interface.update_button_state();
+
+        if (interface.is_none_pressed())
+        {
+            continue;
+        }
+
+        if (interface.is_select_pressed())
+        {
+            if (sub_menu == sub_menu_state::back)
+            {
+                return;
+            }
+            else if (sub_menu == sub_menu_state::purge_weight)
+            {
+                purge_weight.save();
+            }
+            else if (sub_menu == sub_menu_state::single_weight)
+            {
+                single_weight.save();
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                double_weight.save();
+            }
+        }
+        else if (interface.is_right_pressed())
+        {
+            if (sub_menu == sub_menu_state::purge_weight)
+            {
+                purge_weight.increment();
+                purge_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::single_weight)
+            {
+                single_weight.increment();
+                single_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                double_weight.increment();
+                double_weight.write(interface);
+            }
+        }
+        else if (interface.is_left_pressed())
+        {
+            if (sub_menu == sub_menu_state::purge_weight)
+            {
+                purge_weight.decrement();
+                purge_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::single_weight)
+            {
+                single_weight.decrement();
+                single_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                double_weight.decrement();
+                double_weight.write(interface);
+            }
+        }
+        else if (interface.is_up_pressed())
+        {
+            if (sub_menu == sub_menu_state::single_weight)
+            {
+                sub_menu = sub_menu_state::purge_weight;
+                purge_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                sub_menu = sub_menu_state::single_weight;
+                single_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::back)
+            {
+                sub_menu = sub_menu_state::double_weight;
+                double_weight.write(interface);
+            }
+        }
+        else if (interface.is_down_pressed())
+        {
+            if (sub_menu == sub_menu_state::purge_weight)
+            {
+                sub_menu = sub_menu_state::single_weight;
+                single_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::single_weight)
+            {
+                sub_menu = sub_menu_state::double_weight;
+                double_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                sub_menu = sub_menu_state::back;
+                interface.display().clear();
+                interface.display().print("back");
+            }
+        }
+        delay(300);
+    }
 }
 
 void setup()
@@ -352,6 +533,13 @@ void loop()
         else if (item == grinduino::menu::double_dose)
         {
             perform_timer_loop(double_preset, interface, motor);
+        }
+        else if (item == grinduino::menu::settings)
+        {
+            display_settings_menu(interface);
+
+            item = grinduino::menu::purge;
+            purge_preset.write(interface);
         }
     }
     delay(200);
