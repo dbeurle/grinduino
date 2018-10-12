@@ -160,6 +160,35 @@ private:
 };
 
 enum class menu : int { home, purge, single_dose, double_dose, settings, count };
+/// motor is responsible for interfacing the with SSR that control the motor
+/// energisation state (on / off)
+class motor
+{
+public:
+    motor(int const pin = LED_BUILTIN) : m_pin(pin)
+    {
+        pinMode(m_pin, OUTPUT);
+        digitalWrite(m_pin, LOW);
+    }
+
+    void on() noexcept
+    {
+        m_state = true;
+        digitalWrite(m_pin, HIGH);
+    }
+
+    void off() noexcept
+    {
+        m_state = false;
+        digitalWrite(m_pin, LOW);
+    }
+
+    bool state() const noexcept { return m_state; }
+
+private:
+    bool m_state = false;
+    int m_pin;
+};
 }
 
 lcd1602::display_keypad interface;
@@ -167,6 +196,8 @@ lcd1602::display_keypad interface;
 grinduino::timer_preset purge_preset("purge", 0);
 grinduino::timer_preset single_preset("single dose", 1);
 grinduino::timer_preset double_preset("double dose", 2);
+
+grinduino::motor motor(13);
 
 grinduino::menu item = grinduino::menu::purge;
 
@@ -184,7 +215,7 @@ inline void welcome() noexcept
 /// Perform the timer loop withou blocking the button update.  This enables the
 /// select button presses to be recognised
 inline void perform_timer_loop(grinduino::timer_preset& timer,
-                               grinduino::display_keypad& interface,
+                               lcd1602::display_keypad& interface,
                                grinduino::motor& motor)
 {
     timer.save();
