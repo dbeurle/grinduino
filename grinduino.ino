@@ -16,6 +16,9 @@ public:
 
         pinMode(10, OUTPUT);
         analogWrite(10, m_brightness);
+
+        byte block[8] = {B11111, B11111, B11111, B11111, B11111, B11111, B11111, B11111};
+        m_lcd.createChar(0, block);
     }
 
     auto display() noexcept -> LiquidCrystal& { return m_lcd; }
@@ -51,19 +54,33 @@ public:
 
     bool has_state_changed() const noexcept { return m_has_state_changed; }
 
+    void set_maximum_brightness() { m_brightness = 255; }
+
     void increase_brightness()
     {
-        m_brightness = m_brightness > 200 ? 255 : m_brightness + 5;
+        m_brightness = m_brightness > 239 ? 255 : m_brightness + 16;
         analogWrite(10, m_brightness);
     }
 
     void decrease_brightness()
     {
-        m_brightness = m_brightness < 5 ? 0 : m_brightness - 5;
+        m_brightness = m_brightness < 16 ? 0 : m_brightness - 16;
         analogWrite(10, m_brightness);
     }
 
-    auto fraction_brightness() const noexcept -> float { return m_brightness / 255.0f; }
+    void show_brightness_bar()
+    {
+        m_lcd.clear();
+        m_lcd.print("brightness");
+        m_lcd.setCursor(0, 1);
+
+        for (int i = 0; i <= bars_brightness(); ++i)
+        {
+            m_lcd.write(byte(0));
+        }
+    }
+
+    auto bars_brightness() const noexcept -> float { return m_brightness / 16; }
 
 private:
     auto convert_to_code(int const analog_key_input) const noexcept -> button
@@ -77,15 +94,15 @@ private:
         {
             return button::right;
         }
-        else if (analog_key_input > 50 && analog_key_input < 150)
+        else if (analog_key_input <= 150)
         {
             return button::up;
         }
-        else if (analog_key_input >= 150 && analog_key_input < 350)
+        else if (analog_key_input <= 350)
         {
             return button::down;
         }
-        else if (analog_key_input > 350 && analog_key_input < 500)
+        else if (analog_key_input <= 500)
         {
             return button::left;
         }
@@ -97,6 +114,7 @@ private:
 
     /// Current known state of the switch
     button m_current = button::none;
+    /// Last state of the switch
     button m_last = button::none;
 
     bool m_has_state_changed = false;
@@ -106,6 +124,7 @@ private:
     uint8_t m_brightness = 255;
 };
 }
+
 namespace grinduino
 {
 class timer_preset
@@ -212,6 +231,8 @@ private:
     int m_pin;
 };
 
+/// dose_weight is responsible for storing information about the weight in grams
+/// of the dose matching the preset grinding time.
 class dose_weight
 {
 public:
@@ -226,11 +247,7 @@ public:
     /// Increment the timer by 100 ms
     void increment() noexcept { m_value++; }
     /// Decrement the timer by 100 ms
-    void decrement() noexcept
-    {
-        m_value--;
-        m_value = constrain(m_value, 0, 255);
-    }
+    void decrement() noexcept { m_value = min(0, m_value - 1); }
     /// Load a value from the EEPROM of the device \sa save()
     void load() noexcept { m_value = EEPROM.read(m_eeprom_byte_offset); }
     /// Load a value from the EEPROM of the device \sa write()
@@ -252,7 +269,7 @@ public:
     }
 
 private:
-    void print_weight(lcd1602::display_keypad& interface)
+    void print_weight(lcd1602::display_keypad& interface) const noexcept
     {
         interface.display().setCursor(m_name.length() + 3, 1);
         interface.display().print(m_value);
@@ -329,6 +346,7 @@ inline void display_settings_menu(lcd1602::display_keypad& interface)
         single_weight,
         double_weight,
         ground,
+        brightness,
         back,
         count
     };
@@ -381,6 +399,11 @@ inline void display_settings_menu(lcd1602::display_keypad& interface)
                 double_weight.increment();
                 double_weight.write(interface);
             }
+            else if (sub_menu == sub_menu_state::brightness)
+            {
+                interface.increase_brightness();
+                interface.show_brightness_bar();
+            }
         }
         else if (interface.is_left_pressed())
         {
@@ -399,6 +422,11 @@ inline void display_settings_menu(lcd1602::display_keypad& interface)
                 double_weight.decrement();
                 double_weight.write(interface);
             }
+            else if (sub_menu == sub_menu_state::brightness)
+            {
+                interface.decrease_brightness();
+                interface.show_brightness_bar();
+            }
         }
         else if (interface.is_up_pressed())
         {
@@ -412,10 +440,16 @@ inline void display_settings_menu(lcd1602::display_keypad& interface)
                 sub_menu = sub_menu_state::single_weight;
                 single_weight.write(interface);
             }
-            else if (sub_menu == sub_menu_state::back)
+            else if (sub_menu == sub_menu_state::brightness)
             {
                 sub_menu = sub_menu_state::double_weight;
                 double_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::back)
+            {
+                sub_menu = sub_menu_state::brightness;
+
+                interface.show_brightness_bar();
             }
         }
         else if (interface.is_down_pressed())
@@ -431,6 +465,12 @@ inline void display_settings_menu(lcd1602::display_keypad& interface)
                 double_weight.write(interface);
             }
             else if (sub_menu == sub_menu_state::double_weight)
+            {
+                sub_menu = sub_menu_state::brightness;
+
+                interface.show_brightness_bar();
+            }
+            else if (sub_menu == sub_menu_state::brightness)
             {
                 sub_menu = sub_menu_state::back;
                 interface.display().clear();
