@@ -10,7 +10,13 @@ public:
     enum class button : int8_t { right, up, down, left, select, none, unknown };
 
 public:
-    display_keypad() : m_lcd(8, 9, 4, 5, 6, 7) { m_lcd.begin(16, 2); }
+    display_keypad() : m_lcd(8, 9, 4, 5, 6, 7)
+    {
+        m_lcd.begin(16, 2);
+
+        pinMode(10, OUTPUT);
+        analogWrite(10, m_brightness);
+    }
 
     auto display() noexcept -> LiquidCrystal& { return m_lcd; }
 
@@ -44,6 +50,20 @@ public:
     bool is_none_pressed() const noexcept { return m_current == button::none; }
 
     bool has_state_changed() const noexcept { return m_has_state_changed; }
+
+    void increase_brightness()
+    {
+        m_brightness = m_brightness > 200 ? 255 : m_brightness + 5;
+        analogWrite(10, m_brightness);
+    }
+
+    void decrease_brightness()
+    {
+        m_brightness = m_brightness < 5 ? 0 : m_brightness - 5;
+        analogWrite(10, m_brightness);
+    }
+
+    auto fraction_brightness() const noexcept -> float { return m_brightness / 255.0f; }
 
 private:
     auto convert_to_code(int const analog_key_input) const noexcept -> button
@@ -82,6 +102,8 @@ private:
     bool m_has_state_changed = false;
 
     unsigned long m_last_debounce = 0;
+
+    uint8_t m_brightness = 255;
 };
 }
 namespace grinduino
