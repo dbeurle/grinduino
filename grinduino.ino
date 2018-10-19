@@ -116,8 +116,6 @@ public:
     {
     }
 
-    void set(unsigned int const time_value) noexcept { m_time = time_value; }
-
     auto value() const noexcept -> unsigned int { return m_time; }
 
     /// Increment the timer by 100 ms
@@ -130,7 +128,8 @@ public:
     /// Load a value from the EEPROM of the device \sa write()
     void save() noexcept { EEPROM.write(m_eeprom_index, m_time / 100); }
 
-    /// Write a value into the EEPROM of the device
+    /// Write a value to the display
+    /// \param interface Writable interface
     void write(lcd1602::display_keypad& interface) const noexcept
     {
         interface.display().clear();
@@ -182,6 +181,89 @@ private:
 };
 
 enum class menu : int { home, purge, single_dose, double_dose, settings, count };
+
+/// motor is responsible for interfacing the with SSR that control the motor
+/// energisation state (on / off)
+class motor
+{
+public:
+    motor(int const pin = LED_BUILTIN) : m_pin(pin)
+    {
+        pinMode(m_pin, OUTPUT);
+        digitalWrite(m_pin, LOW);
+    }
+
+    void on() noexcept
+    {
+        m_state = true;
+        digitalWrite(m_pin, HIGH);
+    }
+
+    void off() noexcept
+    {
+        m_state = false;
+        digitalWrite(m_pin, LOW);
+    }
+
+    bool state() const noexcept { return m_state; }
+
+private:
+    bool m_state = false;
+    int m_pin;
+};
+
+class dose_weight
+{
+public:
+    dose_weight(int const eeprom_byte_offset, String&& name)
+        : m_eeprom_byte_offset(eeprom_byte_offset), m_name(name)
+    {
+        this->load();
+    }
+
+    auto value() const noexcept -> int8_t { return m_value; }
+
+    /// Increment the timer by 100 ms
+    void increment() noexcept { m_value++; }
+    /// Decrement the timer by 100 ms
+    void decrement() noexcept
+    {
+        m_value--;
+        m_value = constrain(m_value, 0, 255);
+    }
+    /// Load a value from the EEPROM of the device \sa save()
+    void load() noexcept { m_value = EEPROM.read(m_eeprom_byte_offset); }
+    /// Load a value from the EEPROM of the device \sa write()
+    void save() noexcept { EEPROM.write(m_eeprom_byte_offset, m_value); }
+
+    /// Write a value to the display
+    /// \param interface Writable interface
+    void write(lcd1602::display_keypad& interface) const noexcept
+    {
+        interface.display().clear();
+        interface.display().setCursor(0, 0);
+        interface.display().print("dose weight");
+
+        interface.display().setCursor(0, 1);
+        interface.display().print(m_name);
+        interface.display().print(" = ");
+
+        this->print_weight(interface);
+    }
+
+private:
+    void print_weight(lcd1602::display_keypad& interface)
+    {
+        interface.display().setCursor(m_name.length() + 3, 1);
+        interface.display().print(m_value);
+        interface.display().print("g");
+    }
+
+private:
+    int8_t m_eeprom_byte_offset;
+    int8_t m_value;
+    String m_name;
+};
 }
 
 lcd1602::display_keypad interface;
@@ -190,9 +272,16 @@ grinduino::timer_preset purge_preset("purge", 0);
 grinduino::timer_preset single_preset("single dose", 1);
 grinduino::timer_preset double_preset("double dose", 2);
 
+grinduino::dose_weight purge_weight(3, "purge");
+grinduino::dose_weight single_weight(4, "single");
+grinduino::dose_weight double_weight(5, "double");
+
+grinduino::motor motor(13);
+
 grinduino::menu item = grinduino::menu::purge;
 
-void welcome() noexcept
+/// Print a cute welcome message
+inline void welcome() noexcept
 {
     interface.display().clear();
     interface.display().setCursor(4, 0);
@@ -200,6 +289,156 @@ void welcome() noexcept
     interface.display().setCursor(2, 1);
     interface.display().print("version 0.1");
     delay(1000);
+}
+
+/// Perform the timer loop withou blocking the button update.  This enables the
+/// select button presses to be recognised
+inline void perform_timer_loop(grinduino::timer_preset& timer,
+                               lcd1602::display_keypad& interface,
+                               grinduino::motor& motor)
+{
+    timer.save();
+    timer.start();
+
+    motor.on();
+
+    while (!timer.is_finished())
+    {
+        interface.update_button_state();
+
+        // Break out of the countdown if user aborted
+        if (interface.is_select_pressed())
+        {
+            break;
+        }
+        timer.countdown(interface);
+    }
+    motor.off();
+    timer.reset();
+
+    timer.write(interface);
+}
+
+inline void display_settings_menu(lcd1602::display_keypad& interface)
+{
+    interface.display().setCursor(0, 0);
+    interface.display().print("dose weight");
+
+    enum class sub_menu_state : int {
+        purge_weight,
+        single_weight,
+        double_weight,
+        ground,
+        back,
+        count
+    };
+
+    auto sub_menu = sub_menu_state::purge_weight;
+    purge_weight.write(interface);
+
+    while (true)
+    {
+        interface.update_button_state();
+
+        if (interface.is_none_pressed())
+        {
+            continue;
+        }
+
+        if (interface.is_select_pressed())
+        {
+            if (sub_menu == sub_menu_state::back)
+            {
+                return;
+            }
+            else if (sub_menu == sub_menu_state::purge_weight)
+            {
+                purge_weight.save();
+            }
+            else if (sub_menu == sub_menu_state::single_weight)
+            {
+                single_weight.save();
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                double_weight.save();
+            }
+        }
+        else if (interface.is_right_pressed())
+        {
+            if (sub_menu == sub_menu_state::purge_weight)
+            {
+                purge_weight.increment();
+                purge_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::single_weight)
+            {
+                single_weight.increment();
+                single_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                double_weight.increment();
+                double_weight.write(interface);
+            }
+        }
+        else if (interface.is_left_pressed())
+        {
+            if (sub_menu == sub_menu_state::purge_weight)
+            {
+                purge_weight.decrement();
+                purge_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::single_weight)
+            {
+                single_weight.decrement();
+                single_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                double_weight.decrement();
+                double_weight.write(interface);
+            }
+        }
+        else if (interface.is_up_pressed())
+        {
+            if (sub_menu == sub_menu_state::single_weight)
+            {
+                sub_menu = sub_menu_state::purge_weight;
+                purge_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                sub_menu = sub_menu_state::single_weight;
+                single_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::back)
+            {
+                sub_menu = sub_menu_state::double_weight;
+                double_weight.write(interface);
+            }
+        }
+        else if (interface.is_down_pressed())
+        {
+            if (sub_menu == sub_menu_state::purge_weight)
+            {
+                sub_menu = sub_menu_state::single_weight;
+                single_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::single_weight)
+            {
+                sub_menu = sub_menu_state::double_weight;
+                double_weight.write(interface);
+            }
+            else if (sub_menu == sub_menu_state::double_weight)
+            {
+                sub_menu = sub_menu_state::back;
+                interface.display().clear();
+                interface.display().print("back");
+            }
+        }
+        delay(300);
+    }
 }
 
 void setup()
@@ -239,15 +478,26 @@ void loop()
         else if (item == grinduino::menu::double_dose)
         {
             item = grinduino::menu::settings;
-
             interface.display().clear();
             interface.display().setCursor(0, 0);
             interface.display().print("settings");
         }
+        else if (item == grinduino::menu::settings)
+        {
+            item = grinduino::menu::purge;
+            purge_preset.write(interface);
+        }
     }
     else if (interface.is_up_pressed())
     {
-        if (item == grinduino::menu::single_dose)
+        if (item == grinduino::menu::purge)
+        {
+            item = grinduino::menu::settings;
+            interface.display().clear();
+            interface.display().setCursor(0, 0);
+            interface.display().print("settings");
+        }
+        else if (item == grinduino::menu::single_dose)
         {
             item = grinduino::menu::purge;
             purge_preset.write(interface);
@@ -305,61 +555,22 @@ void loop()
 
         if (item == grinduino::menu::purge)
         {
-            purge_preset.save();
-            purge_preset.start();
-
-            while (!purge_preset.is_finished())
-            {
-                interface.update_button_state();
-
-                // Break out of the countdown if user aborted
-                if (interface.is_select_pressed())
-                {
-                    break;
-                }
-                purge_preset.countdown(interface);
-            }
-            purge_preset.reset();
-            purge_preset.write(interface);
+            perform_timer_loop(purge_preset, interface, motor);
         }
         else if (item == grinduino::menu::single_dose)
         {
-            single_preset.save();
-            single_preset.start();
-
-            while (!single_preset.is_finished())
-            {
-                interface.update_button_state();
-
-                // Break out of the countdown if user aborted
-                if (interface.is_select_pressed())
-                {
-                    break;
-                }
-                single_preset.countdown(interface);
-            }
-            single_preset.reset();
-            single_preset.write(interface);
+            perform_timer_loop(single_preset, interface, motor);
         }
         else if (item == grinduino::menu::double_dose)
         {
-            double_preset.save();
+            perform_timer_loop(double_preset, interface, motor);
+        }
+        else if (item == grinduino::menu::settings)
+        {
+            display_settings_menu(interface);
 
-            double_preset.start();
-
-            while (!double_preset.is_finished())
-            {
-                interface.update_button_state();
-
-                // Break out of the countdown if user aborted
-                if (interface.is_select_pressed())
-                {
-                    break;
-                }
-                double_preset.countdown(interface);
-            }
-            double_preset.reset();
-            double_preset.write(interface);
+            item = grinduino::menu::purge;
+            purge_preset.write(interface);
         }
     }
     delay(200);
