@@ -14,7 +14,7 @@ og::dose_weight purge_weight(og::persistent_storage{}.allocate(), "Purge");
 og::dose_weight single_weight(og::persistent_storage{}.allocate(), "Single Dose");
 og::dose_weight double_weight(og::persistent_storage{}.allocate(), "Double Dose");
 
-og::solid_state_relay motor(13);
+og::solid_state_relay motor;
 
 /// Print a cute welcome message
 static void welcome()

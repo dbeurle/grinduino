@@ -8,28 +8,31 @@ namespace og
 class solid_state_relay
 {
 public:
-    solid_state_relay(int const pin = LED_BUILTIN) : m_pin(pin)
+    solid_state_relay()
     {
-        pinMode(m_pin, OUTPUT);
-        digitalWrite(m_pin, LOW);
+        pinMode(A4, OUTPUT);
+        pinMode(A5, OUTPUT);
+        off();
     }
 
     void on() noexcept
     {
         m_state = true;
-        digitalWrite(m_pin, HIGH);
+        digitalWrite(A4, HIGH);
+        digitalWrite(A5, HIGH);
     }
 
     void off() noexcept
     {
         m_state = false;
-        digitalWrite(m_pin, LOW);
+        digitalWrite(A4, LOW);
+        digitalWrite(A5, LOW);
     }
 
     bool state() const noexcept { return m_state; }
 
 private:
     bool m_state = false;
-    int m_pin;
+    int m_pin0, m_pin1;
 };
 }
