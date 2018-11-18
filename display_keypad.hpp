@@ -1,6 +1,10 @@
 
 #pragma once
 
+#include <Arduino.h>
+#include <stdint.h>
+#include <LiquidCrystal.h>
+
 namespace lcd1602
 {
 class display_keypad
@@ -24,7 +28,7 @@ public:
         m_lcd.createChar(lcd_character::up_down, up_down);
     }
 
-    auto display() noexcept -> LiquidCrystal& { return m_lcd; }
+    auto display() -> LiquidCrystal& { return m_lcd; }
 
     /// Update the button state continuously using a debouncing algorithm
     void update_button_state()
@@ -48,14 +52,19 @@ public:
         }
     }
 
-    bool is_select_pressed() const noexcept { return m_current == button::select; }
-    bool is_left_pressed() const noexcept { return m_current == button::left; }
-    bool is_right_pressed() const noexcept { return m_current == button::right; }
-    bool is_up_pressed() const noexcept { return m_current == button::up; }
-    bool is_down_pressed() const noexcept { return m_current == button::down; }
-    bool is_none_pressed() const noexcept { return m_current == button::none; }
+    bool is_select_pressed() const { return m_current == button::select; }
 
-    bool has_state_changed() const noexcept { return m_has_state_changed; }
+    bool is_left_pressed() const { return m_current == button::left; }
+
+    bool is_right_pressed() const { return m_current == button::right; }
+
+    bool is_up_pressed() const { return m_current == button::up; }
+
+    bool is_down_pressed() const { return m_current == button::down; }
+
+    bool is_none_pressed() const { return m_current == button::none; }
+
+    bool has_state_changed() const { return m_has_state_changed; }
 
     void show_saved(uint32_t flash_delay = 1000)
     {
@@ -66,7 +75,7 @@ public:
     }
 
 private:
-    auto blank_line(uint8_t const line) noexcept -> void
+    auto blank_line(uint8_t const line) -> void
     {
         m_lcd.setCursor(0, line == 1);
 
@@ -76,7 +85,7 @@ private:
         }
     }
 
-    auto convert_to_code(int const analog_key_input) const noexcept -> button
+    auto convert_to_code(int const analog_key_input) const -> button
     {
         // Most likely value is nothing pressed
         if (analog_key_input > 1000)

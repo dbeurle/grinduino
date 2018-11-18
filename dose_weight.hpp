@@ -1,6 +1,11 @@
 
 #pragma once
 
+#include "display_keypad.hpp"
+
+#include <Arduino.h>
+#include <EEPROM.h>
+
 namespace og
 {
 /// dose_weight is responsible for storing information about the weight in grams
@@ -37,6 +42,8 @@ public:
         interface.display().clear();
         interface.display().setCursor(0, 0);
         interface.display().print("Dose weight");
+        interface.display().setCursor(15, 0);
+        interface.display().write(static_cast<byte>(lcd1602::display_keypad::lcd_character::up_down));
 
         interface.display().setCursor(0, 1);
         interface.display().print(m_name);

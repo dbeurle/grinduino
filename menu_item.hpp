@@ -17,21 +17,21 @@ namespace og
 class menu_item
 {
 public:
-    menu_item(lcd1602::display_keypad* interface) : m_interface(interface) {}
+    menu_item(lcd1602::display_keypad* interface);
 
     virtual ~menu_item() = default;
 
-    void attach_up_menu(menu_item* const up) { m_up_menu = up; }
+    void attach_up_menu(menu_item* const up);
 
-    void attach_down_menu(menu_item* const down) { m_down_menu = down; }
+    void attach_down_menu(menu_item* const down);
 
-    void attach_upper_menu(menu_item* const upper) { m_upper_menu = upper; }
+    void attach_upper_menu(menu_item* const upper);
 
-    void attach_lower_menu(menu_item* const lower) { m_lower_menu = lower; }
+    void attach_lower_menu(menu_item* const lower);
 
-    menu_item* on_up() { return m_up_menu; }
+    menu_item* on_up();
 
-    menu_item* on_down() { return m_down_menu; }
+    menu_item* on_down();
 
     virtual menu_item* on_select() = 0;
 
@@ -64,46 +64,13 @@ public:
 
     /// Perform the timer loop without blocking the button update.  This enables
     /// the select button presses to be recognised
-    virtual menu_item* on_select()
-    {
-        delay(250);
+    virtual menu_item* on_select();
 
-        m_timer.save();
-        m_timer.start();
+    virtual void on_left();
 
-        m_motor->on();
+    virtual void on_right();
 
-        while (!m_timer.is_finished())
-        {
-            m_interface->update_button_state();
-
-            // Break out of the countdown if user aborted
-            if (m_interface->is_select_pressed())
-            {
-                break;
-            }
-            m_timer.countdown(*m_interface);
-        }
-        m_motor->off();
-        m_timer.reset();
-
-        this->show();
-
-        return this;
-    }
-
-    virtual void on_left()
-    {
-        m_timer.decrement();
-        m_timer.write_time(*m_interface);
-    }
-    virtual void on_right()
-    {
-        m_timer.increment();
-        m_timer.write_time(*m_interface);
-    }
-
-    virtual void show() { m_timer.write(*m_interface); }
+    virtual void show();
 
 private:
     solid_state_relay* m_motor;
@@ -124,27 +91,13 @@ public:
 
     /// Perform the timer loop without blocking the button update.  This enables
     /// the select button presses to be recognised
-    virtual menu_item* on_select()
-    {
-        m_dose.save();
-        m_interface->show_saved();
-        this->show();
+    virtual menu_item* on_select();
 
-        return this;
-    }
+    virtual void on_left();
 
-    virtual void on_left()
-    {
-        m_dose.decrement();
-        m_dose.write(*m_interface);
-    }
-    virtual void on_right()
-    {
-        m_dose.increment();
-        m_dose.write(*m_interface);
-    }
+    virtual void on_right();
 
-    virtual void show() { m_dose.write(*m_interface); }
+    virtual void show();
 
 private:
     dose_weight m_dose;
@@ -153,81 +106,36 @@ private:
 class settings : public menu_item
 {
 public:
-    settings(lcd1602::display_keypad* interface) : menu_item(interface) {}
+    settings(lcd1602::display_keypad* interface);
 
     virtual ~settings() = default;
 
-    virtual menu_item* on_select()
-    {
-        m_lower_menu->show();
-        return m_lower_menu;
-    }
-    virtual void on_left() { return; }
-    virtual void on_right() { return; }
+    virtual menu_item* on_select();
 
-    virtual void show()
-    {
-        m_interface->display().clear();
-        m_interface->display().setCursor(4, 0);
-        m_interface->display().print("Settings");
-    }
+    virtual void on_left();
+
+    virtual void on_right();
+
+    virtual void show();
 };
 
 class brightness : public menu_item
 {
 public:
-    brightness(lcd1602::display_keypad* interface, int const eeprom_index)
-        : menu_item(interface), m_eeprom_index(eeprom_index)
-    {
-        m_brightness = EEPROM.read(m_eeprom_index);
-
-        pinMode(10, OUTPUT);
-        analogWrite(10, m_brightness);
-    }
+    brightness(lcd1602::display_keypad* interface, int const eeprom_index);
 
     virtual ~brightness() = default;
 
-    virtual menu_item* on_select()
-    {
-        // save the output to EEPROM
-        EEPROM.write(m_eeprom_index, m_brightness);
-        m_interface->show_saved();
-        this->show();
+    virtual menu_item* on_select();
 
-        return this;
-    }
+    virtual void on_left();
 
-    virtual void on_left()
-    {
-        m_brightness = m_brightness < 16 ? 0 : m_brightness - 16;
-        analogWrite(10, m_brightness);
+    virtual void on_right();
 
-        this->show_brightness_bar();
-    }
-
-    virtual void on_right()
-    {
-        m_brightness = m_brightness > 239 ? 255 : m_brightness + 16;
-        analogWrite(10, m_brightness);
-
-        this->show_brightness_bar();
-    }
-
-    virtual void show() { this->show_brightness_bar(); }
+    virtual void show();
 
 private:
-    void show_brightness_bar()
-    {
-        m_interface->display().clear();
-        m_interface->display().setCursor(3, 0);
-        m_interface->display().print("Brightness");
-
-        m_interface->display().setCursor(0, 1);
-        for (int i = 0; i <= m_brightness / 16; ++i)
-        {
-            m_interface->display().write(byte(0));
-        }
-    }
+    void show_brightness_bar();
 
 private:
     uint8_t m_brightness = 255;
@@ -237,26 +145,16 @@ private:
 class return_menu : public menu_item
 {
 public:
-    return_menu(lcd1602::display_keypad* interface) : menu_item(interface) {}
+    return_menu(lcd1602::display_keypad* interface);
 
     virtual ~return_menu() = default;
 
-    virtual menu_item* on_select()
-    {
-        m_upper_menu->show();
-        delay(100);
-        return m_upper_menu;
-    }
+    virtual menu_item* on_select();
 
-    virtual void on_left() {}
-    virtual void on_right() {}
+    virtual void on_left();
 
-    virtual void show()
-    {
-        m_interface->display().clear();
-        m_interface->display().setCursor(0, 0);
-        m_interface->display().print("To main menu");
-    }
+    virtual void on_right();
+
+    virtual void show();
 };
-
 }

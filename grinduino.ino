@@ -1,7 +1,4 @@
 
-#include <EEPROM.h>
-#include <LiquidCrystal.h>
-
 #include "persistent_storage.hpp"
 #include "display_keypad.hpp"
 #include "main_menu.hpp"
@@ -23,7 +20,7 @@ static void welcome()
     interface.display().setCursor(2, 0);
     interface.display().print("Open Grinder");
     interface.display().setCursor(2, 1);
-    interface.display().print("Version 0.0.1");
+    interface.display().print("Version 0.0.2");
     delay(1500);
 }
 
