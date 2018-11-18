@@ -108,7 +108,11 @@ private:
         {
             return button::left;
         }
-        return button::select;
+        else if (analog_key_input >= 550 && analog_key_input < 700)
+        {
+            return button::select;
+        }
+        return button::none;
     }
 
 private:
