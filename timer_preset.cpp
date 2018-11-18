@@ -20,7 +20,9 @@ void timer_preset::save() { EEPROM.write(m_eeprom_index, m_time / 100); }
 void timer_preset::write(lcd1602::display_keypad& interface) const
 {
     interface.display().clear();
-    interface.display().setCursor(0, 0);
+
+    // compute the start point
+    interface.display().setCursor((16 - strlen(m_name)) / 2, 0);
     interface.display().print(m_name);
     interface.display().setCursor(15, 0);
     interface.display().write(static_cast<byte>(lcd1602::display_keypad::lcd_character::up_down));
@@ -51,13 +53,12 @@ void timer_preset::countdown(lcd1602::display_keypad& interface)
 
 void timer_preset::print_duration(lcd1602::display_keypad& interface, unsigned long const time_ms) const
 {
+    // maintain the decimal point location for floating point weight
     if (time_ms < 10000)
     {
         interface.display().setCursor(5, 1);
         interface.display().print(" ");
     }
-    interface.display().setCursor((time_ms < 10000 ? 6 : 5), 1);
-
     interface.display().setCursor((time_ms < 10000 ? 6 : 5), 1);
     interface.display().print(time_ms / 1000.0f, 1);
     interface.display().print("s");

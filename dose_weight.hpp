@@ -14,7 +14,7 @@ class dose_weight
 {
 public:
     dose_weight(int const eeprom_byte_offset, String&& name)
-        : m_eeprom_byte_offset(eeprom_byte_offset), m_name(name)
+        : m_eeprom_byte_offset(eeprom_byte_offset), m_name(name + " weight")
     {
         this->load();
     }
@@ -40,14 +40,16 @@ public:
     void write(lcd1602::display_keypad& interface) const noexcept
     {
         interface.display().clear();
-        interface.display().setCursor(0, 0);
-        interface.display().print("Dose weight");
+        interface.display().setCursor((16 - m_name.length()) / 2, 0);
+        interface.display().print(m_name);
+
         interface.display().setCursor(15, 0);
         interface.display().write(static_cast<byte>(lcd1602::display_keypad::lcd_character::up_down));
 
-        interface.display().setCursor(0, 1);
-        interface.display().print(m_name);
-        interface.display().print(" = ");
+        interface.display().setCursor(2, 1);
+        interface.display().print("-");
+        interface.display().setCursor(13, 1);
+        interface.display().print("+");
 
         this->print_weight(interface);
     }
@@ -55,7 +57,7 @@ public:
 private:
     void print_weight(lcd1602::display_keypad& interface) const noexcept
     {
-        interface.display().setCursor(m_name.length() + 3, 1);
+        interface.display().setCursor(m_value >= 10 ? 6 : 7, 1);
         interface.display().print(m_value);
         interface.display().print("g");
     }
