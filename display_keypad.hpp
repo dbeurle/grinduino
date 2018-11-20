@@ -1,8 +1,9 @@
 
 #pragma once
 
-#include <Arduino.h>
 #include <stdint.h>
+
+#include <Arduino.h>
 #include <LiquidCrystal.h>
 
 namespace lcd1602
@@ -70,7 +71,7 @@ public:
     {
         m_lcd.clear();
         m_lcd.setCursor(5, 0);
-        m_lcd.write("Saved!");
+        m_lcd.print(F("Saved!"));
         delay(flash_delay);
     }
 
@@ -81,7 +82,7 @@ private:
 
         for (int i = 0; i < 16; ++i)
         {
-            m_lcd.write(byte(1));
+            m_lcd.write(static_cast<byte>(lcd_character::blank));
         }
     }
 
