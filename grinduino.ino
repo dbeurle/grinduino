@@ -20,7 +20,7 @@ static void welcome()
     interface.display().setCursor(2, 0);
     interface.display().print(F("Open Grinder"));
     interface.display().setCursor(2, 1);
-    interface.display().print(F("Version 0.0.2"));
+    interface.display().print(F("Version 0.0.3"));
     delay(1500);
 }
 
