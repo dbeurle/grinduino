@@ -4,7 +4,6 @@
 #include "display_keypad.hpp"
 
 #include <Arduino.h>
-#include <EEPROM.h>
 
 namespace og
 {
@@ -13,57 +12,26 @@ namespace og
 class dose_weight
 {
 public:
-    dose_weight(int const eeprom_byte_offset, String&& name)
-        : m_eeprom_byte_offset(eeprom_byte_offset), m_name(name + " weight")
-    {
-        this->load();
-    }
+    dose_weight(uint8_t const eeprom_byte_offset, String&& name);
 
     /// Increment the timer by 100 ms
-    void increment() noexcept { m_value++; }
+    void increment();
 
     /// Decrement the timer by 100 ms
-    void decrement() noexcept
-    {
-        if (m_value == 0)
-        {
-            return;
-        }
-        --m_value;
-    }
+    void decrement();
 
     /// Load a value from the EEPROM of the device \sa save()
-    void load() noexcept { m_value = EEPROM.read(m_eeprom_byte_offset); }
+    void load();
 
     /// Load a value from the EEPROM of the device \sa write()
-    void save() noexcept { EEPROM.write(m_eeprom_byte_offset, m_value); }
+    void save();
 
     /// Write a value to the display
     /// \param interface Writable interface
-    void write(lcd1602::display_keypad& interface) const noexcept
-    {
-        interface.display().clear();
-        interface.display().setCursor((16 - m_name.length()) / 2, 0);
-        interface.display().print(m_name);
-
-        interface.display().setCursor(15, 0);
-        interface.display().write(static_cast<byte>(lcd1602::display_keypad::lcd_character::up_down));
-
-        interface.display().setCursor(2, 1);
-        interface.display().print("-");
-        interface.display().setCursor(13, 1);
-        interface.display().print("+");
-
-        this->print_weight(interface);
-    }
+    void write(lcd1602::display_keypad& interface) const;
 
 private:
-    void print_weight(lcd1602::display_keypad& interface) const noexcept
-    {
-        interface.display().setCursor(m_value >= 10 ? 6 : 7, 1);
-        interface.display().print(m_value);
-        interface.display().print("g");
-    }
+    void print_weight(lcd1602::display_keypad& interface) const;
 
 private:
     uint8_t m_eeprom_byte_offset;
