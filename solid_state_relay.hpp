@@ -15,21 +15,21 @@ public:
         off();
     }
 
-    void on() noexcept
+    void on()
     {
         m_state = true;
         digitalWrite(A4, HIGH);
         digitalWrite(A5, HIGH);
     }
 
-    void off() noexcept
+    void off()
     {
         m_state = false;
         digitalWrite(A4, LOW);
         digitalWrite(A5, LOW);
     }
 
-    bool state() const noexcept { return m_state; }
+    bool state() const { return m_state; }
 
 private:
     bool m_state = false;
