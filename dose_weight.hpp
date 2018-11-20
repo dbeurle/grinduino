@@ -21,6 +21,7 @@ public:
 
     /// Increment the timer by 100 ms
     void increment() noexcept { m_value++; }
+
     /// Decrement the timer by 100 ms
     void decrement() noexcept
     {
@@ -30,8 +31,10 @@ public:
         }
         --m_value;
     }
+
     /// Load a value from the EEPROM of the device \sa save()
     void load() noexcept { m_value = EEPROM.read(m_eeprom_byte_offset); }
+
     /// Load a value from the EEPROM of the device \sa write()
     void save() noexcept { EEPROM.write(m_eeprom_byte_offset, m_value); }
 
@@ -63,7 +66,7 @@ private:
     }
 
 private:
-    int8_t m_eeprom_byte_offset;
+    uint8_t m_eeprom_byte_offset;
     int8_t m_value;
     String m_name;
 };

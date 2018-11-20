@@ -3,5 +3,5 @@
 
 namespace og
 {
-int persistent_storage::m_byte_offset = 0;
+uint8_t persistent_storage::m_byte_offset = 0;
 }

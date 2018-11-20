@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 namespace lcd1602
 {
 class display_keypad;
@@ -49,6 +51,6 @@ private:
     char const* m_name;
     unsigned long m_time = 0;
     unsigned long m_started_at = 0;
-    int m_eeprom_index;
+    uint8_t m_eeprom_index;
 };
 }

@@ -139,7 +139,7 @@ private:
 
 private:
     uint8_t m_brightness = 255;
-    int m_eeprom_index;
+    uint8_t m_eeprom_index;
 };
 
 class return_menu : public menu_item

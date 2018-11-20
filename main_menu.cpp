@@ -5,14 +5,14 @@ namespace og
 {
 main_menu::main_menu(lcd1602::display_keypad* const interface, solid_state_relay* const motor)
     : m_interface(interface),
-      m_items{new timer_preset_item(interface, motor, "Purge", persistent_storage{}.allocate()),
-              new timer_preset_item(interface, motor, "Single dose", persistent_storage{}.allocate()),
-              new timer_preset_item(interface, motor, "Double dose", persistent_storage{}.allocate()),
+      m_items{new timer_preset_item(interface, motor, "Purge", persistent_storage::allocate()),
+              new timer_preset_item(interface, motor, "Single dose", persistent_storage::allocate()),
+              new timer_preset_item(interface, motor, "Double dose", persistent_storage::allocate()),
               new settings(interface),
-              new dose_preset_item(interface, persistent_storage{}.allocate(), "Purge"),
-              new dose_preset_item(interface, persistent_storage{}.allocate(), "Single"),
-              new dose_preset_item(interface, persistent_storage{}.allocate(), "Double"),
-              new brightness(interface, persistent_storage{}.allocate()),
+              new dose_preset_item(interface, persistent_storage::allocate(), "Purge"),
+              new dose_preset_item(interface, persistent_storage::allocate(), "Single"),
+              new dose_preset_item(interface, persistent_storage::allocate(), "Double"),
+              new brightness(interface, persistent_storage::allocate()),
               new return_menu(interface)}
 {
     // timer presets
