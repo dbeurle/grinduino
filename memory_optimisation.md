@@ -5,3 +5,5 @@ Initial 9238 and 391
 * Use F() macro (9258, 362)
 * Change method to avoid integer conversion (9254, 362)
 * Change constructor to avoid integer conversion (9254, 362)
+* Remove unused variables (9216, 358)
+* More F() macro (9242, 326)

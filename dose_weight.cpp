@@ -47,7 +47,7 @@ void dose_weight::print_weight(lcd1602::display_keypad& interface) const
 {
     interface.display().setCursor(m_value >= 10 ? 6 : 7, 1);
     interface.display().print(m_value);
-    interface.display().print("g");
+    interface.display().print(F("g"));
 }
 
 }

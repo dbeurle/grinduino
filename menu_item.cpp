@@ -102,7 +102,7 @@ void settings::show()
 {
     m_interface->display().clear();
     m_interface->display().setCursor(4, 0);
-    m_interface->display().print("Settings");
+    m_interface->display().print(F("Settings"));
     m_interface->display().setCursor(15, 0);
     m_interface->display().write(static_cast<byte>(lcd1602::display_keypad::lcd_character::up_down));
 }
@@ -148,14 +148,14 @@ void brightness::show_brightness_bar()
 {
     m_interface->display().clear();
     m_interface->display().setCursor(3, 0);
-    m_interface->display().print("Brightness");
+    m_interface->display().print(F("Brightness"));
     m_interface->display().setCursor(15, 0);
     m_interface->display().write(static_cast<byte>(lcd1602::display_keypad::lcd_character::up_down));
 
     m_interface->display().setCursor(0, 1);
     for (int i = 0; i <= m_brightness / 16; ++i)
     {
-        m_interface->display().write(static_cast<byte>(0));
+        m_interface->display().write(static_cast<byte>(lcd1602::display_keypad::lcd_character::block));
     }
 }
 
@@ -176,7 +176,7 @@ void return_menu::show()
 {
     m_interface->display().clear();
     m_interface->display().setCursor(0, 0);
-    m_interface->display().print("To main menu");
+    m_interface->display().print(F("To main menu"));
 
     m_interface->display().setCursor(15, 0);
     m_interface->display().write(static_cast<byte>(lcd1602::display_keypad::lcd_character::up_down));
