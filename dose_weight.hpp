@@ -3,8 +3,6 @@
 
 #include "display_keypad.hpp"
 
-#include <Arduino.h>
-
 namespace og
 {
 /// dose_weight is responsible for storing information about the weight in grams
@@ -12,7 +10,7 @@ namespace og
 class dose_weight
 {
 public:
-    dose_weight(uint8_t const eeprom_byte_offset, String&& name);
+    dose_weight(uint8_t const eeprom_byte_offset, char const* name);
 
     /// Increment the timer by 100 ms
     void increment();
@@ -36,6 +34,6 @@ private:
 private:
     uint8_t m_eeprom_byte_offset;
     int8_t m_value;
-    String m_name;
+    char const* m_name;
 };
 }

@@ -5,8 +5,8 @@
 
 namespace og
 {
-dose_weight::dose_weight(uint8_t const eeprom_byte_offset, String&& name)
-    : m_eeprom_byte_offset(eeprom_byte_offset), m_name(name + " weight")
+dose_weight::dose_weight(uint8_t const eeprom_byte_offset, char const* const name)
+    : m_eeprom_byte_offset(eeprom_byte_offset), m_name(name)
 {
     this->load();
 }
@@ -29,8 +29,10 @@ void dose_weight::save() { EEPROM.write(m_eeprom_byte_offset, m_value); }
 void dose_weight::write(lcd1602::display_keypad& interface) const
 {
     interface.display().clear();
-    interface.display().setCursor((16 - m_name.length()) / 2, 0);
+    // length of the name and the length of a space and 'weight'
+    interface.display().setCursor((16 - strlen(m_name) - 7) / 2, 0);
     interface.display().print(m_name);
+    interface.display().print(F(" weight"));
 
     interface.display().setCursor(15, 0);
     interface.display().write(static_cast<byte>(lcd1602::display_keypad::lcd_character::up_down));
