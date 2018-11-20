@@ -8,7 +8,7 @@
 
 namespace og
 {
-timer_preset::timer_preset(char const* name, int const eeprom_index, unsigned long const time_ms)
+timer_preset::timer_preset(char const* name, uint8_t const eeprom_index, unsigned long const time_ms)
     : m_name(name), m_time(time_ms), m_eeprom_index(eeprom_index)
 {
 }

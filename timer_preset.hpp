@@ -15,17 +15,19 @@ namespace og
 class timer_preset
 {
 public:
-    timer_preset(char const* name, int const eeprom_index, unsigned long const time_ms = 1000);
+    timer_preset(char const* name, uint8_t const eeprom_index, unsigned long const time_ms = 1000);
 
     auto value() const -> unsigned int { return m_time; }
 
     /// Increment the timer by 100 ms
     void increment() { m_time += 100; }
+
     /// Decrement the timer by 100 ms
     void decrement() { m_time = (m_time >= 100) ? m_time - 100 : 0; }
 
     /// Load a value from the EEPROM of the device \sa save()
     void load();
+
     /// Load a value from the EEPROM of the device \sa write()
     void save();
 
