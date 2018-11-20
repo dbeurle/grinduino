@@ -8,3 +8,4 @@ Initial 9238 and 391
 * Remove unused variables (9216, 358)
 * More F() macro (9242, 326)
 * More F() macro (9242, 318)
+* Remove unused state and method (9232, 317)

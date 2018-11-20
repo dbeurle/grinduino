@@ -11,7 +11,7 @@ namespace lcd1602
 class display_keypad
 {
 public:
-    enum class button : int8_t { right, up, down, left, select, none, unknown };
+    enum class button : uint8_t { right, up, down, left, select, none, unknown };
 
     enum lcd_character { block = 0, blank, up_down };
 
@@ -44,12 +44,7 @@ public:
             {
                 m_current = m_last;
                 m_last_debounce = millis();
-                m_has_state_changed = true;
             }
-        }
-        else
-        {
-            m_has_state_changed = false;
         }
     }
 
@@ -64,8 +59,6 @@ public:
     bool is_down_pressed() const { return m_current == button::down; }
 
     bool is_none_pressed() const { return m_current == button::none; }
-
-    bool has_state_changed() const { return m_has_state_changed; }
 
     void show_saved(uint32_t flash_delay = 1000)
     {
@@ -123,8 +116,6 @@ private:
     button m_current = button::none;
     /// Last state of the switch
     button m_last = button::none;
-
-    bool m_has_state_changed = false;
 
     unsigned long m_last_debounce = 0;
 };
